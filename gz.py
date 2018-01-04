@@ -1,19 +1,23 @@
 # encoding: utf-8
 
-import sys
+import os
 import curses
+import collections
+import npyscreen
+
 from os.path import expanduser
 
-import npyscreen
-from npyscreen import NPSApp
+from npyscreen import NPSAppManaged
 from npyscreen import Form
 from npyscreen import TitleSelectOne
 
-GROUPS = {
-    'live database': 'db-',
-    'jenkins': 'jenkins-',
-    'live was': 'test-'
-}
+# edit me
+GROUPS = collections.OrderedDict()
+
+# GROUP[$display_name] = '${startswith of hostname}'
+GROUPS['was server'] = 'was-'
+
+selected_hosts = []
 
 
 class HostItemWidget(TitleSelectOne):
@@ -27,18 +31,21 @@ class HostItemWidget(TitleSelectOne):
         })
 
     def run_ssh(self, *args, **kwargs):
-        hostname = self.get_values()[self.get_value()[0]]
-        sys.stdout.write(hostname)
-        exit()
+        selected = self.get_value()
+        if not selected:
+            return
+
+        hostname = self.get_values()[selected[0]]
+        selected_hosts.append(hostname)
+        App.switchForm(None)
 
 
-class TestApp(NPSApp):
+class TestApp(NPSAppManaged):
 
-    def main(self):
+    def onStart(self):
         npyscreen.setTheme(npyscreen.Themes.ColorfulTheme)
 
         form = Form(name="Remote Gazuaaaaa~!")
-
         for name, finder in GROUPS.items():
 
             hostnames = []
@@ -48,9 +55,10 @@ class TestApp(NPSApp):
                     hostnames.append(hostname)
 
             form.add(HostItemWidget, name=name, scroll_exit=True,
-                     max_height=len(hostnames), values=hostnames)
+                     min_height=1, max_height=max(2, len(hostnames) + 1),
+                     values=hostnames)
 
-        form.edit()
+        self.registerForm("MAIN", form)
 
 
 def read_ssh_config():
@@ -67,3 +75,5 @@ def parse_ssh_config():
 if __name__ == "__main__":
     App = TestApp()
     App.run()
+    if selected_hosts:
+        os.execvp('ssh', ['ssh', selected_hosts[0]])
