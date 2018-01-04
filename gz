@@ -21,7 +21,7 @@ fi
 is_npyscreen_installed="$(pip freeze | grep npyscreen)"
 
 if [ -z $is_npyscreen_installed ]; then
-	pip install npyscreen
+	pip install -r requirements.txt
 fi
 
 
