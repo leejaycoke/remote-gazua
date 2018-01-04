@@ -5,7 +5,6 @@ import os
 import curses
 import collections
 import npyscreen
-import logging as log
 
 from os.path import expanduser
 
@@ -19,8 +18,6 @@ from npyscreen import TitleMultiSelect
 GROUPS = collections.OrderedDict()
 
 GROUP_PATTERN = re.compile('^#gz\:(group\=(?P<group_name>[^,]+))')
-
-log.basicConfig(filename='./test.log', level=log.DEBUG)
 
 
 class HostItemWidget(TitleMultiSelect):
