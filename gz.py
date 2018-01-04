@@ -39,7 +39,7 @@ class HostItemWidget(TitleMultiSelect):
             return
 
         global SELECTED_HOSTNAMES
-        SELECTED_HOSTNAMES = self.get_values()
+        SELECTED_HOSTNAMES = self.get_selected_objects()
         App.switchForm(None)
 
 
@@ -94,7 +94,7 @@ def parse_ssh_config():
 
 
 def create_tmux_command(hostnames):
-    session = uuid4().hex
+    session = str(uuid4().hex)
     commands = [
         "tmux new-session -s %s -d" % session,
         "tmux send-keys -t %s 'ssh %s' C-m" % (session, hostnames[0])
@@ -110,7 +110,6 @@ def create_tmux_command(hostnames):
 
     commands += [
         "tmux select-layout 'tiled'",
-        "tmux select-pane -t :.+",
         "tmux set-window-option synchronize-panes on",
         "tmux attach -t %s" % session
     ]
@@ -120,9 +119,7 @@ def create_tmux_command(hostnames):
 
 def run_tmux(hostnames):
     session, commands = create_tmux_command(hostnames)
-
     os.system("; ".join(commands))
-    os.execvp('tmux', ['attach', '-t', session])
 
 
 if __name__ == "__main__":
