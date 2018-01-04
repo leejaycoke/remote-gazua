@@ -1,26 +1,29 @@
 # encoding: utf-8
 
+import re
 import os
 import curses
 import collections
 import npyscreen
+import logging as log
 
 from os.path import expanduser
 
+from uuid import uuid4
+
 from npyscreen import NPSAppManaged
 from npyscreen import Form
-from npyscreen import TitleSelectOne
+from npyscreen import TitleMultiSelect
 
 # edit me
 GROUPS = collections.OrderedDict()
 
-# GROUP[$display_name] = '${startswith of hostname}'
-GROUPS['was server'] = 'was-'
+GROUP_PATTERN = re.compile('^#gz\:(group\=(?P<group_name>[^,]+))')
 
-selected_hosts = []
+log.basicConfig(filename='./test.log', level=log.DEBUG)
 
 
-class HostItemWidget(TitleSelectOne):
+class HostItemWidget(TitleMultiSelect):
 
     def __init__(self, *args, **keywords):
         super(HostItemWidget, self).__init__(*args, **keywords)
@@ -35,8 +38,8 @@ class HostItemWidget(TitleSelectOne):
         if not selected:
             return
 
-        hostname = self.get_values()[selected[0]]
-        selected_hosts.append(hostname)
+        global SELECTED_HOSTNAMES
+        SELECTED_HOSTNAMES = self.get_values()
         App.switchForm(None)
 
 
@@ -46,15 +49,11 @@ class TestApp(NPSAppManaged):
         npyscreen.setTheme(npyscreen.Themes.ColorfulTheme)
 
         form = Form(name="Remote Gazuaaaaa~!")
-        for name, finder in GROUPS.items():
 
-            hostnames = []
+        grouped_hosts = parse_ssh_config()
 
-            for hostname in parse_ssh_config():
-                if hostname.startswith(finder):
-                    hostnames.append(hostname)
-
-            form.add(HostItemWidget, name=name, scroll_exit=True,
+        for group_name, hostnames in grouped_hosts.items():
+            form.add(HostItemWidget, name=group_name, scroll_exit=True,
                      min_height=1, max_height=max(2, len(hostnames) + 1),
                      values=hostnames)
 
@@ -68,12 +67,68 @@ def read_ssh_config():
 
 
 def parse_ssh_config():
+    groups = collections.OrderedDict()
+    groups['default'] = []
+    name = 'default'
+
     lines = read_ssh_config()
-    return [line.strip().split()[1] for line in lines
-            if line.strip().lower().startswith('host ')]
+
+    for line in lines:
+        match = GROUP_PATTERN.match(line)
+        if match:
+            name = match.groupdict()['group_name']
+            if name not in groups:
+                groups[name] = []
+            continue
+
+        if not line.lower().startswith('host '):
+            continue
+
+        hostname = line.strip().split()[1]
+        groups[name].append(hostname)
+
+    if len(groups['default']) == 0:
+        del groups['default']
+
+    return groups
+
+
+def create_tmux_command(hostnames):
+    session = uuid4().hex
+    commands = [
+        "tmux new-session -s %s -d" % session,
+        "tmux send-keys -t %s 'ssh %s' C-m" % (session, hostnames[0])
+    ]
+
+    if len(hostnames) > 1:
+        for i, hostname in enumerate(hostnames[1:]):
+            commands += [
+                "tmux split-window -v -t %s" % session,
+                "tmux send-keys -t %s:0.%d 'ssh %s' C-m" % (
+                    session, i + 1, hostname)
+            ]
+
+    commands += [
+        "tmux select-layout 'tiled'",
+        "tmux select-pane -t :.+",
+        "tmux set-window-option synchronize-panes on",
+        "tmux attach -t %s" % session
+    ]
+
+    return session, commands
+
+
+def run_tmux(hostnames):
+    session, commands = create_tmux_command(hostnames)
+
+    os.system("; ".join(commands))
+    os.execvp('tmux', ['attach', '-t', session])
+
 
 if __name__ == "__main__":
     App = TestApp()
     App.run()
-    if selected_hosts:
-        os.execvp('ssh', ['ssh', selected_hosts[0]])
+
+    if SELECTED_HOSTNAMES:
+        run_tmux(SELECTED_HOSTNAMES)
+        # os.execvp('ssh', ['ssh', SELECTED_HOSTNAMES[0]])
