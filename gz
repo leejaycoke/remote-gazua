@@ -1,18 +1,28 @@
 #!/bin/bash
 
-if [ ! -d ./venv ]; then
-	python_path="$(which python3)"
-	if [ -z $python_path ]; then
-		echo "not exists python3"
-		exit 1
-	fi
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-	virtualenv venv -p $python_path
-	source ./venv/bin/activate
+if [ ! -d $DIR/venv ]; then
 
+	echo "Install Gazua~~~!!!"
+	echo "Install path: $DIR"
+
+	virtualenv $DIR/venv
+fi
+
+source $DIR/venv/bin/activate
+
+pip_path="$(which pip)"
+if [ -z $pip_path ]; then
+	echo "Failed to install: not installed pip"
+	exit 1
+fi
+
+is_npyscreen_installed="$(pip freeze | grep npyscreen)"
+
+if [ -z $is_npyscreen_installed ]; then
 	pip install npyscreen
 fi
 
-source ./venv/bin/activate
 
-python ./gz.py
+python $DIR/gz.py
