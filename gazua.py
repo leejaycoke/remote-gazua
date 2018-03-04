@@ -32,17 +32,26 @@ import ssh
 search_edit = Edit('search: ')
 header = AttrMap(search_edit, 'header')
 
+configs = ssh.get_configs()
 
-class FocusRadioButton(RadioButton):
+
+class SelectablePile(Pile):
+
     pass
-# def keypress(self, size, key):
-# return super(SSHCheckBox, self).keypress(key)
+
+
+class SelectableText(Text):
+
+    def selectable(self):
+        return True
+
+    def keypress(self, size, key):
+        return key
 
 
 class SSHCheckBox(CheckBox):
+
     pass
-    # def keypress(self, size, key):
-    # return super(SSHCheckBox, self).keypress(key)
 
 
 class SearchableFrame(Frame):
@@ -56,32 +65,52 @@ class SearchableFrame(Frame):
         return super(SearchableFrame, self).keypress(size, key)
 
 
-configs = ssh.get_configs()
-
-values = collections.OrderedDict()
-
+menu_names = []
 menu_widgets = []
-host_widgets = []
+host_widgets = collections.OrderedDict()
+
+
+def click():
+    print('good')
 
 for group, hosts in configs.items():
+    menu_names.append(group)
     menu_widget = AttrMap(
-        Columns([FocusRadioButton([], group), Text('5')]), 'body', 'group')
+        Columns([SelectableText(group), Text('5'), Text('>', align='right')]), 'body', 'group')
     menu_widgets.append(menu_widget)
+
+    if group not in host_widgets:
+        host_widgets[group] = []
 
     for host in hosts:
         host_widget = SSHCheckBox(host)
-        host_widgets.append(host_widget)
+        host_widgets[group].append(host_widget)
 
 
-menu = Filler(Pile(menu_widgets), valign='top')
-menu_box = LineBox(menu, tlcorner='', tline='', lline='',
+menu_model = SimpleFocusListWalker(menu_widgets)
+menu_listbox = ListBox(menu_model)
+menu_box = LineBox(menu_listbox, tlcorner='', tline='', lline='',
                    trcorner='', blcorner='', rline='│', bline='', brcorner='')
 
-host = Filler(Pile(host_widgets), valign='top')
-host_box = LineBox(host, tlcorner='', tline='', lline='',
+
+first_host_widgets = host_widgets[host_widgets.keys()[0]]
+host_model = SimpleFocusListWalker(first_host_widgets)
+host_listbox = ListBox(host_model)
+host_box = LineBox(host_listbox, tlcorner='', tline='', lline='',
                    trcorner='', blcorner='', rline='', bline='', brcorner='')
 
-columns = Columns([menu_box, host], dividechars=1)
+
+def menu_selected():
+    focus_item = menu_listbox.get_focus()
+    text_widget = focus_item[0].original_widget[0]
+    host_listbox.body = SimpleFocusListWalker(host_widgets[text_widget.text])
+
+
+urwid.connect_signal(menu_model, "modified", menu_selected)
+
+
+columns = Columns([menu_box, host_box])
+
 body = LineBox(columns)
 
 palette = [
