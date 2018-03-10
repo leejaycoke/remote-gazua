@@ -104,3 +104,8 @@ ENV/
 
 /venv
 *.log
+
+#pytest
+tests/.pytest_cache
+
+./logs
