@@ -13,6 +13,7 @@
 ## 요구사항
 
 - python2.x, 3.x
+- pip
 - tmux
 
 ## 설정
@@ -44,4 +45,10 @@ Host live-db-slave
     HostName 123.123.123.124
     User ec2-user
 
+```
+
+## alias
+
+```bash
+$ alias gz='${install_path}/gz'
 ```
