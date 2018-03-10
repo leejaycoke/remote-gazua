@@ -33,20 +33,11 @@ fi
 
 source $DIR/venv/bin/activate
 
-pip_path="$(which pip)"
-if [ -z $pip_path ]; then
-	echo "Failed to install: not installed pip"
-	exit 1
-fi
-
 check_libs="$(pip freeze | grep urwid)"
 
 if [ -z $check_libs ]; then
 	pip install -r requirements.txt
 fi
 
-
-echo "- install complete."
-echo "- run command: \$ alias gz='$DIR/gz'"
 
 python $DIR/gazua.py

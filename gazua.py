@@ -32,8 +32,6 @@ from urwid import SolidFill
 
 import ssh
 
-logging.basicConfig(filename='./log/test.log', level=logging.DEBUG)
-
 search_edit = Edit('search: ')
 header = AttrMap(search_edit, 'header')
 
