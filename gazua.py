@@ -1,7 +1,11 @@
 # -*- coding: utf-8 -*-
 
+import os
+from uuid import uuid4
 
 import collections
+
+import logging
 
 import urwid
 
@@ -28,6 +32,7 @@ from urwid import SolidFill
 
 import ssh
 
+logging.basicConfig(filename='./log/test.log', level=logging.DEBUG)
 
 search_edit = Edit('search: ')
 header = AttrMap(search_edit, 'header')
@@ -35,9 +40,39 @@ header = AttrMap(search_edit, 'header')
 configs = ssh.get_configs()
 
 
-class SelectablePile(Pile):
+selected_hostnames = []
 
-    pass
+
+def create_tmux_command():
+    session = str(uuid4().hex)
+    commands = [
+        "tmux new-session -s %s -d -x 2000 -y 2000" % session,
+        "tmux send-keys -t %s 'ssh %s' C-m" % (session, selected_hostnames[0])
+    ]
+
+    if len(selected_hostnames) > 1:
+        for i, hostname in enumerate(selected_hostnames[1:]):
+            commands += [
+                "tmux split-window -v -t %s" % session,
+                "tmux send-keys -t %s:0.%d 'ssh %s' C-m" % (
+                    session, i + 1, hostname)
+            ]
+
+    commands += [
+        "tmux select-layout 'tiled'",
+        "tmux set-window-option synchronize-panes on",
+        "tmux attach -t %s" % session
+    ]
+
+    return session, commands
+
+
+def run_tmux():
+    if len(selected_hostnames) == 0:
+        return
+
+    session, commands = create_tmux_command()
+    os.system("; ".join(commands))
 
 
 class SelectableText(Text):
@@ -51,7 +86,12 @@ class SelectableText(Text):
 
 class SSHCheckBox(CheckBox):
 
-    pass
+    def keypress(self, size, key):
+        if key == 'enter':
+            run_tmux()
+            return
+
+        return super(SSHCheckBox, self).keypress(size, key)
 
 
 class SearchableFrame(Frame):
@@ -70,20 +110,24 @@ menu_widgets = []
 host_widgets = collections.OrderedDict()
 
 
-def click():
-    print('good')
+def host_state_changed(checkbox, state):
+    if state:
+        selected_hostnames.append(checkbox.label)
+    else:
+        selected_hostnames.remove(checkbox.label)
+
 
 for group, hosts in configs.items():
     menu_names.append(group)
     menu_widget = AttrMap(
-        Columns([SelectableText(group), Text('5'), Text('>', align='right')]), 'body', 'group')
+        Columns([SelectableText(group)]), 'body', 'group')
     menu_widgets.append(menu_widget)
 
     if group not in host_widgets:
         host_widgets[group] = []
 
     for host in hosts:
-        host_widget = SSHCheckBox(host)
+        host_widget = SSHCheckBox(host, on_state_change=host_state_changed)
         host_widgets[group].append(host_widget)
 
 
@@ -100,10 +144,18 @@ host_box = LineBox(host_listbox, tlcorner='', tline='', lline='',
                    trcorner='', blcorner='', rline='', bline='', brcorner='')
 
 
-def menu_selected():
+def change_host_column():
     focus_item = menu_listbox.get_focus()
-    text_widget = focus_item[0].original_widget[0]
-    host_listbox.body = SimpleFocusListWalker(host_widgets[text_widget.text])
+    group = focus_item[0].original_widget[0].text
+    host_listbox.body = SimpleFocusListWalker(host_widgets[group])
+
+    for widgets in host_widgets.values():
+        for host_checkbox in widgets:
+            host_checkbox.set_state(False)
+
+
+def menu_selected():
+    change_host_column()
 
 
 urwid.connect_signal(menu_model, "modified", menu_selected)
