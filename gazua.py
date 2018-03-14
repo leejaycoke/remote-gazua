@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import sys
 from uuid import uuid4
 
 import collections
@@ -71,6 +72,7 @@ def run_tmux():
 
     session, commands = create_tmux_command()
     os.system("; ".join(commands))
+    sys.exit(0)
 
 
 class SelectableText(Text):
