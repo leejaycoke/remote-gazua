@@ -13,6 +13,7 @@ from widget import SSHCheckBox
 from widget import SearchableFrame
 
 from urwid import Edit
+from urwid import Text
 from urwid import Columns
 from urwid import MainLoop
 from urwid import AttrMap
@@ -67,15 +68,15 @@ def run_tmux():
         sys.exit(0)
 
 
-menu_names = []
 menu_widgets = []
 host_widgets = collections.OrderedDict()
 
 
 def on_group_changed():
     focus_item = menu_listbox.get_focus()
-    group = focus_item[0].original_widget[0].text
-    host_listbox.body = SimpleFocusListWalker(host_widgets[group])
+
+    group_widge = focus_item[0].original_widget[0].text
+    host_listbox.body = SimpleFocusListWalker(host_widgets[group_widge])
 
     for widgets in host_widgets.values():
         for host_checkbox in widgets:
@@ -92,10 +93,6 @@ def on_host_selected(checkbox, state, hostname):
 configs = ssh.get_configs()
 
 for group, hosts in configs.items():
-    menu_names.append(group)
-    menu_widget = AttrMap(
-        Columns([SelectableText(group)]), 'body', 'group')
-    menu_widgets.append(menu_widget)
 
     if group not in host_widgets:
         host_widgets[group] = []
@@ -104,6 +101,13 @@ for group, hosts in configs.items():
         host_widget = SSHCheckBox(run_tmux, host)
         urwid.connect_signal(host_widget, 'change', on_host_selected, host)
         host_widgets[group].append(host_widget)
+
+    group_widget = SelectableText(group)
+    count_widget = Text(str(len(hosts)), align='right')
+    arrow_widget = Text(">", align='right')
+    menu_widget = AttrMap(
+        Columns([group_widget, count_widget, arrow_widget]), 'body', 'group')
+    menu_widgets.append(menu_widget)
 
 
 menu_model = SimpleFocusListWalker(menu_widgets)
