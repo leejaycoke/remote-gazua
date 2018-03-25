@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from logger import log
 import re
 
 import collections
@@ -59,22 +60,21 @@ def parse_config():
         if line.startswith(GZ_COMMENT_PREFIX):
             current_group = parse_group_name(line)
             if current_group not in configs:
-                configs[current_group] = []
+                configs[current_group] = collections.OrderedDict()
 
         else:
             try:
                 key, value = line.split()
                 if key not in EXPECTED_CONFIG_PREFIXES:
-                    raise Exception(
-                        "Unexpted line specified. line='%s'" % line)
+                    raise Exception("Unexpted line specified")
             except Exception as e:
-                print str(e)
+                log.warning(str(e) + ", line=%s" % line)
                 continue
 
             if key == 'Host':
                 current_host = value
-                configs[current_group] = collections.OrderedDict()
-                configs[current_group][current_host] = {}
+                configs[current_group][
+                    current_host] = collections.OrderedDict()
             else:
                 configs[current_group][current_host][key] = value
 
@@ -82,4 +82,3 @@ def parse_config():
         del configs[DEFAULT_GROUP]
 
     return configs
-

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import re
 from urwid import Text
 from urwid import CheckBox
 from urwid import Frame
@@ -38,7 +39,8 @@ class SearchableFrame(Frame):
 
     def keypress(self, size, key):
         if len(key) == 1 and key.isalpha:
-            self.search_edit.insert_text(key)
+            if re.compile('^[a-zA-Z0-9]$').match(key):
+                self.search_edit.insert_text(key)
         elif key == 'backspace':
             self.search_edit.set_edit_text(
                 self.search_edit.get_edit_text()[0:-1])
