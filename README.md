@@ -6,10 +6,6 @@
 
 ![screenshot](./image/screenshot.png) 
 
-- 동영상으로 보기
-
-[https://asciinema.org/a/BKhkAa4DiZfHnioKQAMO4YRXp](https://asciinema.org/a/BKhkAa4DiZfHnioKQAMO4YRXp)
-
 ## 요구사항
 
 - python2.x, 3.x

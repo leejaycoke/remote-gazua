@@ -1,55 +1,49 @@
 # -*- coding: utf-8 -*-
 
 import os
-from uuid import uuid4
-
+import sys
 import collections
-
-import logging
-
 import urwid
-
-from urwid import AttrWrap
-from urwid import Text
-from urwid import Edit
-from urwid import Frame
-from urwid import Columns
-from urwid import Pile
-from urwid import Filler
-from urwid import MainLoop
-from urwid import AttrMap
-from urwid import CheckBox
-from urwid import LineBox
-from urwid import BoxAdapter
-from urwid import Padding
-from urwid import Divider
-from urwid import ListBox
-from urwid import LineBox
-from urwid import RadioButton
-from urwid import SimpleFocusListWalker
-from urwid import Overlay
-from urwid import SolidFill
-
 import ssh
 
-search_edit = Edit('search: ')
-header = AttrMap(search_edit, 'header')
+from uuid import uuid4
 
-configs = ssh.get_configs()
+from logger import log
+
+from widget import SelectableText
+from widget import SSHCheckBox
+from widget import SearchableFrame
+
+from urwid import Edit
+from urwid import Text
+from urwid import Columns
+from urwid import MainLoop
+from urwid import AttrMap
+from urwid import LineBox
+from urwid import ListBox
+from urwid import SimpleFocusListWalker
 
 
-selected_hostnames = []
+SEARCH_EDIT = Edit('search: ')
+HEADER = AttrMap(SEARCH_EDIT, 'header')
+
+SESSION_NAME_PREFIX = "gz-"
+
+SELECTED_HOSTS = []
+MENU_WIDGETS = []
+HOST_WIDGETS = collections.OrderedDict()
 
 
 def create_tmux_command():
-    session = str(uuid4().hex)
+    session = create_session_name()
     commands = [
         "tmux new-session -s %s -d -x 2000 -y 2000" % session,
-        "tmux send-keys -t %s 'ssh %s' C-m" % (session, selected_hostnames[0])
+        "tmux send-keys -t %s 'ssh %s' C-m" % (session, SELECTED_HOSTS[0])
     ]
 
-    if len(selected_hostnames) > 1:
-        for i, hostname in enumerate(selected_hostnames[1:]):
+    is_multi_selection = len(SELECTED_HOSTS) > 1
+    if is_multi_selection:
+        for i, hostname in enumerate(SELECTED_HOSTS[1:]):
             commands += [
                 "tmux split-window -v -t %s" % session,
                 "tmux send-keys -t %s:0.%d 'ssh %s' C-m" % (
@@ -62,113 +56,88 @@ def create_tmux_command():
         "tmux attach -t %s" % session
     ]
 
-    return session, commands
+    return commands
+
+
+def create_session_name():
+    return SESSION_NAME_PREFIX + str(uuid4().hex)
 
 
 def run_tmux():
-    if len(selected_hostnames) == 0:
-        return
-
-    session, commands = create_tmux_command()
-    os.system("; ".join(commands))
-
-
-class SelectableText(Text):
-
-    def selectable(self):
-        return True
-
-    def keypress(self, size, key):
-        return key
+    is_tmux_runnable = len(SELECTED_HOSTS) > 0
+    if is_tmux_runnable:
+        commands = create_tmux_command()
+        os.system("; ".join(commands))
+        sys.exit(0)
 
 
-class SSHCheckBox(CheckBox):
+def on_group_changed():
+    focus_item = menu_listbox.get_focus()
 
-    def keypress(self, size, key):
-        if key == 'enter':
-            run_tmux()
-            return
+    group_widge = focus_item[0].original_widget[0].text
+    host_listbox.body = SimpleFocusListWalker(HOST_WIDGETS[group_widge])
 
-        return super(SSHCheckBox, self).keypress(size, key)
-
-
-class SearchableFrame(Frame):
-
-    def keypress(self, size, key):
-        if len(key) == 1 and key.isalpha:
-            search_edit.insert_text(key)
-        elif key == 'backspace':
-            search_edit.set_edit_text(search_edit.get_edit_text()[0:-1])
-
-        return super(SearchableFrame, self).keypress(size, key)
+    for widget_attrs in HOST_WIDGETS.values():
+        for host_attr in widget_attrs:
+            host_attr.original_widget[0].set_state(False)
 
 
-menu_names = []
-menu_widgets = []
-host_widgets = collections.OrderedDict()
-
-
-def host_state_changed(checkbox, state):
+def on_host_selected(checkbox, state, hostname):
     if state:
-        selected_hostnames.append(checkbox.label)
+        SELECTED_HOSTS.append(hostname)
     else:
-        selected_hostnames.remove(checkbox.label)
+        SELECTED_HOSTS.remove(hostname)
 
+
+configs = ssh.parse_config()
+
+print(str(configs))
 
 for group, hosts in configs.items():
-    menu_names.append(group)
-    menu_widget = AttrMap(
-        Columns([SelectableText(group)]), 'body', 'group')
-    menu_widgets.append(menu_widget)
 
-    if group not in host_widgets:
-        host_widgets[group] = []
+    if group not in HOST_WIDGETS:
+        HOST_WIDGETS[group] = []
 
-    for host in hosts:
-        host_widget = SSHCheckBox(host, on_state_change=host_state_changed)
-        host_widgets[group].append(host_widget)
+    for host, values in hosts.items():
+        hostname = values.get('HostName', 'unknown')
+        host_widget = SSHCheckBox(run_tmux, host)
+        ipaddr_widget = Text(hostname, align='left')
+        column_widget = Columns([host_widget, ipaddr_widget], dividechars=2)
+        urwid.connect_signal(host_widget, 'change', on_host_selected, hostname)
 
+        host_widget = AttrMap(column_widget, 'body', 'host')
+        HOST_WIDGETS[group].append(host_widget)
 
-menu_model = SimpleFocusListWalker(menu_widgets)
+    group_widget = SelectableText(group)
+    count_widget = Text(str(len(hosts)), align='left')
+    arrow_widget = Text(">", align='right')
+    column_widget = Columns(
+        [group_widget, count_widget, arrow_widget], dividechars=2)
+    menu_widget = AttrMap(column_widget, 'body', 'group')
+    MENU_WIDGETS.append(menu_widget)
+
+menu_model = SimpleFocusListWalker(MENU_WIDGETS)
 menu_listbox = ListBox(menu_model)
 menu_box = LineBox(menu_listbox, tlcorner='', tline='', lline='',
                    trcorner='', blcorner='', rline='│', bline='', brcorner='')
+urwid.connect_signal(menu_model, "modified", on_group_changed)
 
-
-first_host_widgets = host_widgets[host_widgets.keys()[0]]
-host_model = SimpleFocusListWalker(first_host_widgets)
+first_host_widget = HOST_WIDGETS[HOST_WIDGETS.keys()[0]]
+host_model = SimpleFocusListWalker(first_host_widget)
 host_listbox = ListBox(host_model)
 host_box = LineBox(host_listbox, tlcorner='', tline='', lline='',
                    trcorner='', blcorner='', rline='', bline='', brcorner='')
 
 
-def change_host_column():
-    focus_item = menu_listbox.get_focus()
-    group = focus_item[0].original_widget[0].text
-    host_listbox.body = SimpleFocusListWalker(host_widgets[group])
-
-    for widgets in host_widgets.values():
-        for host_checkbox in widgets:
-            host_checkbox.set_state(False)
-
-
-def menu_selected():
-    change_host_column()
-
-
-urwid.connect_signal(menu_model, "modified", menu_selected)
-
-
 columns = Columns([menu_box, host_box])
-
 body = LineBox(columns)
 
 palette = [
     ('header', 'white', 'dark red', 'bold'),
     ('group', 'black', 'yellow', 'bold'),
-    ('focus', 'dark red', 'yellow', 'bold'),
+    ('host', 'black', 'dark green'),
 ]
 
-frame = SearchableFrame(body, header=header)
+frame = SearchableFrame(SEARCH_EDIT, body, header=HEADER)
 
-MainLoop(frame, palette).run()
+MainLoop(frame, palette, handle_mouse=False).run()

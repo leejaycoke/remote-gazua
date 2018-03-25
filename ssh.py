@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from logger import log
 import re
 
 import collections
@@ -11,32 +12,32 @@ home = expanduser("~")
 
 
 GROUP_PATTERN = re.compile('^#gz\:(group\=(?P<group_name>[^,]+))')
-DEFAULT_GROUP = 'default_group'
+DEFAULT_GROUP = 'default'
+
+EXPECTED_CONFIG_PREFIXES = [
+    'Host',
+    'HostName',
+    'User',
+    'IdentityFile',
+    'Port',
+]
+
+GZ_COMMENT_PREFIX = '#gz:'
 
 
-HOST_PREFIX = 'Host'
-GZ_PREFIX = '#gz:'
-
-
-def _get_ssh_config():
+def get_config_file():
     filename = home + "/.ssh/config"
     if not path.isfile(filename):
         raise IOError("SSH config file not exists '%s'" % filename)
     return filename
 
 
-def _read_ssh_config():
-    with open(_get_ssh_config()) as fp:
-        return fp.readlines()
+def read_config_file():
+    with open(get_config_file()) as fp:
+        return [line.strip() for line in fp.readlines() if line.strip() != '']
 
 
-def _parse_ssh_lines():
-    contents = _read_ssh_config()
-    return [line.strip() for line in contents
-            if line.startswith(GZ_PREFIX) or line.startswith(HOST_PREFIX)]
-
-
-def _parse_group_name(line):
+def parse_group_name(line):
     match = GROUP_PATTERN.match(line)
     if not match:
         raise ValueError(
@@ -44,23 +45,38 @@ def _parse_group_name(line):
     return match.groupdict()['group_name']
 
 
-def get_configs():
-    lines = _parse_ssh_lines()
+def parse_config():
+    contents = read_config_file()
+    current_group = DEFAULT_GROUP
 
     configs = collections.OrderedDict()
-    configs[DEFAULT_GROUP] = []
-    last_group_name = DEFAULT_GROUP
+    configs[current_group] = []
 
-    for line in lines:
-        if line.startswith(GZ_PREFIX):
-            group_name = _parse_group_name(line)
-            if group_name not in configs:
-                configs[group_name] = []
-                last_group_name = group_name
+    current_host = None
 
-        elif line.startswith(HOST_PREFIX):
-            hostname = line.split()[1]
-            configs[last_group_name].append(hostname)
+    for line in contents:
+
+        # if starts with #gz comments
+        if line.startswith(GZ_COMMENT_PREFIX):
+            current_group = parse_group_name(line)
+            if current_group not in configs:
+                configs[current_group] = collections.OrderedDict()
+
+        else:
+            try:
+                key, value = line.split()
+                if key not in EXPECTED_CONFIG_PREFIXES:
+                    raise Exception("Unexpted line specified")
+            except Exception as e:
+                log.warning(str(e) + ", line=%s" % line)
+                continue
+
+            if key == 'Host':
+                current_host = value
+                configs[current_group][
+                    current_host] = collections.OrderedDict()
+            else:
+                configs[current_group][current_host][key] = value
 
     if len(configs[DEFAULT_GROUP]) == 0:
         del configs[DEFAULT_GROUP]

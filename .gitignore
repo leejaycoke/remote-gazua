@@ -109,3 +109,5 @@ ENV/
 tests/.pytest_cache
 
 ./logs
+
+.pytest_cache
