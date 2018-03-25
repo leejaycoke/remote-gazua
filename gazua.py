@@ -91,7 +91,6 @@ def on_host_selected(checkbox, state, hostname):
 
 configs = ssh.parse_config()
 
-print(str(configs))
 
 for group, hosts in configs.items():
 
