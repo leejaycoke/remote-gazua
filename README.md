@@ -6,23 +6,25 @@
 
 ![screenshot](./image/screenshot.png) 
 
-- 동영상으로 보기
-
-[https://asciinema.org/a/BKhkAa4DiZfHnioKQAMO4YRXp](https://asciinema.org/a/BKhkAa4DiZfHnioKQAMO4YRXp)
-
 ## 요구사항
 
 - python2.x, 3.x
 - pip
 - tmux
+- virtualenv
 
-## 앞으로 구현할 것들, 문제점
+## 문제점
 
-- 검색기능 당연히 안됨.
-- 종료 후 screen clear 안됨.
-- 그룹 리스트 포커스를 fluid 형태로 개선 필요.
-- 그룹별 개수 노출.
-- 호스트별 아이피주소 노출.
+- python v3.x에 대한 대응이 거의 안되어있습니다.
+
+## 개선할 점
+
+- 검색 기능
+- fluid형태의 focus
+
+## 앞으로 추가할 기능
+
+- AWS ec2 불러오기
 
 ## 설정
 
@@ -38,20 +40,24 @@
 Host live-web1
     HostName 123.123.123.123
     User ec2-user
+    IdentityFile ~/.ssh/test1_id_rsa
 
 Host live-web2
     HostName 123.123.123.124
     User ec2-user
+    IdentityFile ~/.ssh/test1_id_rsa
 
 #gz:group=live database
 
 Host live-db-master
     HostName 123.123.123.123
     User ec2-user
+    IdentityFile ~/.ssh/test2_id_rsa
 
 Host live-db-slave
     HostName 123.123.123.124
     User ec2-user
+    IdentityFile ~/.ssh/test2_id_rsa
 
 ```
 
