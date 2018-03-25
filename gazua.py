@@ -139,4 +139,11 @@ palette = [
 
 frame = SearchableFrame(SEARCH_EDIT, body, header=HEADER)
 
-MainLoop(frame, palette, handle_mouse=False).run()
+
+def show_or_exit(key):
+    if key == 'esc':
+        raise urwid.ExitMainLoop()
+
+loop = MainLoop(frame, palette, handle_mouse=False,
+                unhandled_input=show_or_exit)
+loop.run()
