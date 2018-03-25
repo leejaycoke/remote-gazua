@@ -4,7 +4,7 @@
 
 - 스크린샷
 
-![screenshot](./image/screen.gif) 
+![screenshot](./image/screen.gif | widget=500) 
 
 ## 요구사항
 
