@@ -4,7 +4,7 @@
 
 - 스크린샷
 
-![screenshot](./image/screenshot.png) 
+![screenshot](./image/screen.gif) 
 
 ## 요구사항
 
