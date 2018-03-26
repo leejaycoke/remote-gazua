@@ -98,11 +98,13 @@ for group, hosts in configs.items():
         HOST_WIDGETS[group] = []
 
     for host, values in hosts.items():
-        hostname = values.get('HostName', 'unknown')
         host_widget = SSHCheckBox(run_tmux, host)
-        ipaddr_widget = Text(hostname, align='left')
+
+        ipaddr = values.get('HostName', 'unknown')
+        ipaddr_widget = Text(ipaddr, align='left')
+
         column_widget = Columns([host_widget, ipaddr_widget], dividechars=2)
-        urwid.connect_signal(host_widget, 'change', on_host_selected, hostname)
+        urwid.connect_signal(host_widget, 'change', on_host_selected, host)
 
         host_widget = AttrMap(column_widget, 'body', 'host')
         HOST_WIDGETS[group].append(host_widget)

@@ -24,6 +24,8 @@ EXPECTED_CONFIG_PREFIXES = [
 
 GZ_COMMENT_PREFIX = '#gz:'
 
+HOST = 'host'
+
 
 def get_config_file():
     filename = home + "/.ssh/config"
@@ -50,7 +52,7 @@ def parse_config():
     current_group = DEFAULT_GROUP
 
     configs = collections.OrderedDict()
-    configs[current_group] = []
+    configs[current_group] = collections.OrderedDict()
 
     current_host = None
 
@@ -71,10 +73,9 @@ def parse_config():
                 log.warning(str(e) + ", line=%s" % line)
                 continue
 
-            if key == 'Host':
+            if key == HOST:
+                configs[current_group][value] = collections.OrderedDict()
                 current_host = value
-                configs[current_group][
-                    current_host] = collections.OrderedDict()
             else:
                 configs[current_group][current_host][key] = value
 
