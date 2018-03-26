@@ -27,7 +27,6 @@ GZ_COMMENT_PREFIX = '#gz:'
 
 def get_config_file():
     filename = home + "/.ssh/config"
-    filename = "./tests/resources/config_for_dev"
     if not path.isfile(filename):
         raise IOError("SSH config file not exists '%s'" % filename)
     return filename
