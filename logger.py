@@ -9,7 +9,7 @@ LOG_FILE_PATH = os.getcwd() + '/log'
 
 def get_log_path():
     if not os.path.isdir(LOG_FILE_PATH):
-        os.path.makedirs(LOG_FILE_PATH)
+        os.makedirs(LOG_FILE_PATH)
     return LOG_FILE_PATH + '/gz.log'
 
 
