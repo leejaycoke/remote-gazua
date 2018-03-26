@@ -2,19 +2,23 @@ import os
 import logging
 import logging.handlers
 
-LOGGER_NAME = "gz-logger"
+GZ_ENV = 'GZ_ENV'
+ENV_LOCAL = 'LOCAL'
+
+LOGGER_NAME = 'gz-logger'
+FOLDER = os.getcwd() + '/log/'
+FILENAME = 'gz.log'
 LOG_FORMAT = "[%(asctime)s] [%(levelname)s] [%(filename)s:%(lineno)s] %(message)s"
-LOG_FILE_PATH = os.getcwd() + '/log'
 
 
 def get_log_path():
-    if not os.path.isdir(LOG_FILE_PATH):
-        os.makedirs(LOG_FILE_PATH)
-    return LOG_FILE_PATH + '/gz.log'
+    if not os.path.isdir(FOLDER):
+        os.makedirs(FOLDER)
+    return FOLDER + FILENAME
 
 
 def get_log_level():
-    return logging.DEBUG if os.environ.get('GZ_ENV', 'LOCAL') == 'LOCAL' \
+    return logging.DEBUG if os.environ.get(GZ_ENV) == ENV_LOCAL \
         else logging.INFO
 
 
