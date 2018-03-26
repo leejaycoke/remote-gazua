@@ -27,6 +27,7 @@ GZ_COMMENT_PREFIX = '#gz:'
 
 def get_config_file():
     filename = home + "/.ssh/config"
+    filename = "./tests/resources/config_for_dev"
     if not path.isfile(filename):
         raise IOError("SSH config file not exists '%s'" % filename)
     return filename
@@ -50,7 +51,7 @@ def parse_config():
     current_group = DEFAULT_GROUP
 
     configs = collections.OrderedDict()
-    configs[current_group] = []
+    configs[current_group] = collections.OrderedDict()
 
     current_host = None
 
@@ -75,6 +76,7 @@ def parse_config():
                 current_host = value
                 configs[current_group][
                     current_host] = collections.OrderedDict()
+
             else:
                 configs[current_group][current_host][key] = value
 
