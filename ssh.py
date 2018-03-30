@@ -24,7 +24,7 @@ EXPECTED_CONFIG_PREFIXES = [
 
 GZ_COMMENT_PREFIX = '#gz:'
 
-HOST = 'host'
+HOST = 'Host'
 
 
 def get_config_file():

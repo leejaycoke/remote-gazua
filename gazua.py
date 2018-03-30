@@ -30,7 +30,7 @@ HEADER = AttrMap(SEARCH_EDIT, 'header')
 SESSION_NAME_PREFIX = "gz-"
 
 SELECTED_HOSTS = []
-MENU_WIDGETS = []
+GROUP_WIDGETS = []
 HOST_WIDGETS = collections.OrderedDict()
 
 
@@ -72,10 +72,17 @@ def run_tmux():
 
 
 def on_group_changed():
-    focus_item = menu_listbox.get_focus()
+    focus_item = group_listbox.get_focus()
 
-    group_widge = focus_item[0].original_widget[0].text
-    host_listbox.body = SimpleFocusListWalker(HOST_WIDGETS[group_widge])
+    for group_widget in GROUP_WIDGETS:
+        if group_widget == focus_item[0]:
+            group_widget.set_attr_map({None: 'group_focus'})
+        else:
+            group_widget.set_attr_map({None: None})
+
+    group_widget = focus_item[0].original_widget[0].text
+
+    host_listbox.body = SimpleFocusListWalker(HOST_WIDGETS[group_widget])
 
     for widget_attrs in HOST_WIDGETS.values():
         for host_attr in widget_attrs:
@@ -106,22 +113,22 @@ for group, hosts in configs.items():
         column_widget = Columns([host_widget, ipaddr_widget], dividechars=2)
         urwid.connect_signal(host_widget, 'change', on_host_selected, host)
 
-        host_widget = AttrMap(column_widget, 'body', 'host')
+        host_widget = AttrMap(column_widget, None, 'host_focus')
         HOST_WIDGETS[group].append(host_widget)
 
-    group_widget = SelectableText(group)
+    group_widget = SelectableText(group, wrap='clip')
     count_widget = Text(str(len(hosts)), align='left')
     arrow_widget = Text(">", align='right')
     column_widget = Columns(
         [group_widget, count_widget, arrow_widget], dividechars=2)
-    menu_widget = AttrMap(column_widget, 'body', 'group')
-    MENU_WIDGETS.append(menu_widget)
+    group_widget = AttrMap(column_widget, None)
+    GROUP_WIDGETS.append(group_widget)
 
-menu_model = SimpleFocusListWalker(MENU_WIDGETS)
-menu_listbox = ListBox(menu_model)
-menu_box = LineBox(menu_listbox, tlcorner='', tline='', lline='',
-                   trcorner='', blcorner='', rline='│', bline='', brcorner='')
-urwid.connect_signal(menu_model, "modified", on_group_changed)
+group_model = SimpleFocusListWalker(GROUP_WIDGETS)
+group_listbox = ListBox(group_model)
+group_box = LineBox(group_listbox, tlcorner='', tline='', lline='',
+                    trcorner='', blcorner='', rline='│', bline='', brcorner='')
+urwid.connect_signal(group_model, "modified", on_group_changed)
 
 first_host_widget = HOST_WIDGETS[HOST_WIDGETS.keys()[0]]
 host_model = SimpleFocusListWalker(first_host_widget)
@@ -129,14 +136,18 @@ host_listbox = ListBox(host_model)
 host_box = LineBox(host_listbox, tlcorner='', tline='', lline='',
                    trcorner='', blcorner='', rline='', bline='', brcorner='')
 
+GROUP_WIDGETS[0].set_attr_map({None: 'group_focus'})
 
-columns = Columns([menu_box, host_box])
+columns = Columns([group_box, host_box])
 body = LineBox(columns)
 
 palette = [
     ('header', 'white', 'dark red', 'bold'),
     ('group', 'black', 'yellow', 'bold'),
     ('host', 'black', 'dark green'),
+    ('group_focus', 'black', 'dark green'),
+    ('host_focus', 'black', 'yellow'),
+    ('settler', 'black', 'dark green'),
 ]
 
 frame = SearchableFrame(SEARCH_EDIT, body, header=HEADER)
