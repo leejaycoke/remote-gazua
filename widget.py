@@ -14,6 +14,7 @@ class SelectableText(Text):
         return True
 
     def keypress(self, size, key):
+        # if key == 'right':
         return key
 
 
