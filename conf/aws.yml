@@ -1,0 +1,31 @@
+group-prefix: '[EC2]'
+
+credential:
+    aws_access_key_id: 
+    aws_secret_access_key: 
+    region: 'ap-northeast-2'
+
+tag:
+    group: Group
+    name: Name
+
+hostname:
+    default: private_ip
+    group:
+      live-company-group: private_ip
+    name:
+      private-my-server: public_dns
+
+identity-file:
+    default: ~/.ssh/id_rsa_test
+    group:
+        tag-group: ~/.ssh/test1
+    name:
+        tag-name: ~/.ssh/test2
+
+user:
+    default: ec2-user
+    group:
+        tag-group: centos
+    name:
+        tag-name: leejuhyun

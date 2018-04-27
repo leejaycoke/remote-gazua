@@ -27,6 +27,10 @@ from urwid import SimpleFocusListWalker
 SEARCH_EDIT = Edit('search: ')
 HEADER = AttrMap(SEARCH_EDIT, 'header')
 
+LOAD_EC2 = Text('[F2]Load EC2')
+DELETE_EC2 = Text('[F3]Delete EC2')
+FOOTER = AttrMap(Columns([(15, LOAD_EC2), DELETE_EC2]), 'footer')
+
 SESSION_NAME_PREFIX = "gz-"
 
 SELECTED_HOSTS = []
@@ -117,7 +121,7 @@ for group, hosts in configs.items():
         HOST_WIDGETS[group].append(host_widget)
 
     group_widget = SelectableText(group, wrap='clip')
-    count_widget = Text(str(len(hosts)), align='left')
+    count_widget = Text(str(len(hosts)), align='right')
     arrow_widget = Text(">", align='right')
     column_widget = Columns(
         [group_widget, count_widget, arrow_widget], dividechars=2)
@@ -138,25 +142,34 @@ host_box = LineBox(host_listbox, tlcorner='', tline='', lline='',
 
 GROUP_WIDGETS[0].set_attr_map({None: 'group_focus'})
 
-columns = Columns([group_box, host_box])
+columns = Columns([(50, group_box), host_box])
 body = LineBox(columns)
 
 palette = [
     ('header', 'white', 'dark red', 'bold'),
+    ('footer', 'black', 'light gray'),
     ('group', 'black', 'yellow', 'bold'),
     ('host', 'black', 'dark green'),
     ('group_focus', 'black', 'dark green'),
     ('host_focus', 'black', 'yellow'),
-    ('settler', 'black', 'dark green'),
 ]
 
-frame = SearchableFrame(SEARCH_EDIT, body, header=HEADER)
+frame = SearchableFrame(SEARCH_EDIT, body, header=HEADER, footer=FOOTER)
 
 
-def show_or_exit(key):
+def load_ec2():
+    pass
+
+
+def key_pressed(key):
     if key == 'esc':
         raise urwid.ExitMainLoop()
+    elif key == 'f2':
+        load_ec2()
+    elif key == 'f3':
+        pass
+        # delete_ec2()
 
 loop = MainLoop(frame, palette, handle_mouse=False,
-                unhandled_input=show_or_exit)
+                unhandled_input=key_pressed)
 loop.run()
